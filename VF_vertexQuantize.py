@@ -1,7 +1,7 @@
 bl_info = {
 	"name": "VF Vertex Quantize",
 	"author": "John Einselen - Vectorform LLC",
-	"version": (0, 1),
+	"version": (0, 2),
 	"blender": (2, 80, 0),
 	"location": "Scene > VF Tools > Vertex Quantize",
 	"description": "Customisable vertex snapping for increments that don't match the default grid scale",
@@ -51,9 +51,12 @@ class vf_vertex_quantize(bpy.types.Operator):
 		# Process vertices
 		for vert in selectedVerts:
 			new_location = vert.co
-			new_location[0] = round(new_location[0] / quantX) * quantX
-			new_location[1] = round(new_location[1] / quantY) * quantY
-			new_location[2] = round(new_location[2] / quantZ) * quantZ
+			if quantX > 0.0:
+				new_location[0] = round(new_location[0] / quantX) * quantX
+			if quantY > 0.0:
+				new_location[1] = round(new_location[1] / quantY) * quantY
+			if quantZ > 0.0:
+				new_location[2] = round(new_location[2] / quantZ) * quantZ
 			vert.co = new_location
 
 		# Reset object mode to original
