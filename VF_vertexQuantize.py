@@ -1,7 +1,7 @@
 bl_info = {
 	"name": "VF Vertex Quantize",
 	"author": "John Einselen - Vectorform LLC",
-	"version": (0, 2),
+	"version": (0, 2, 1),
 	"blender": (2, 80, 0),
 	"location": "Scene > VF Tools > Vertex Quantize",
 	"description": "Customisable vertex snapping for increments that don't match the default grid scale",
@@ -102,7 +102,8 @@ class VFTOOLS_PT_vertex_quantize(bpy.types.Panel):
 	bl_space_type = "VIEW_3D"
 	bl_region_type = "UI"
 	bl_category = 'VF Tools'
-	bl_order = 0
+	bl_order = 8
+	bl_options = {'DEFAULT_CLOSED'}
 	bl_label = "Vertex Quantize"
 	bl_idname = "VFTOOLS_PT_vertex_quantize"
 
