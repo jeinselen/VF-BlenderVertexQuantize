@@ -2,12 +2,12 @@ bl_info = {
 	"name": "VF Vertex Quantize",
 	"author": "John Einselen - Vectorform LLC",
 	"version": (0, 2, 1),
-	"blender": (2, 80, 0),
+	"blender": (2, 83, 0),
 	"location": "Scene > VF Tools > Vertex Quantize",
 	"description": "Customisable vertex snapping for increments that don't match the default grid scale",
 	"warning": "inexperienced developer, use at your own risk",
-	"wiki_url": "",
-	"tracker_url": "",
+	"doc_url": "https://github.com/jeinselenVF/VF-BlenderVertexQuantize",
+	"tracker_url": "https://github.com/jeinselenVF/VF-BlenderVertexQuantize/issues",
 	"category": "3D View"}
 
 # Based in part on basic code found here:
