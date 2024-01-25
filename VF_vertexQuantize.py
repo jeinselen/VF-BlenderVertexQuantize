@@ -1,9 +1,9 @@
 bl_info = {
 	"name": "VF Vertex Quantize",
 	"author": "John Einselen - Vectorform LLC",
-	"version": (0, 2, 1),
 	"blender": (2, 83, 0),
 	"location": "Scene > VF Tools > Vertex Quantize",
+	"version": (0, 3, 0),
 	"description": "Customisable vertex snapping for increments that don't match the default grid scale",
 	"warning": "inexperienced developer, use at your own risk",
 	"doc_url": "https://github.com/jeinselenVF/VF-BlenderVertexQuantize",
@@ -15,8 +15,6 @@ bl_info = {
 # https://blender.stackexchange.com/questions/196483/create-keyboard-shortcut-for-an-operator-using-python
 
 import bpy
-from bpy.app.handlers import persistent
-import random
 
 ###########################################################################
 # Main class
@@ -24,30 +22,29 @@ import random
 class vf_vertex_quantize(bpy.types.Operator):
 	bl_idname = "vfvertexquantize.offset"
 	bl_label = "Vertex Quantize"
-	bl_description = "Snap vertices to customisable quantisation steps"
+	bl_description = "Snap vertices to custom quantization steps"
 	bl_options = {'REGISTER', 'UNDO'}
-
+	
 	def execute(self, context):
 		# self.report({'INFO'}, f"This is {self.bl_idname}")
 		if not bpy.context.view_layer.objects.active.data.vertices:
+			print("Error in VF Vertex Quantize operation (data not available?)")
 			return {'CANCELLED'}
-
+		
 		# Set up local variables
-		if bpy.context.scene.vf_vertex_quantize_settings.uniform_dimensions:
-			quantX = bpy.context.scene.vf_vertex_quantize_settings.quant_uniform
-			quantY = bpy.context.scene.vf_vertex_quantize_settings.quant_uniform
-			quantZ = bpy.context.scene.vf_vertex_quantize_settings.quant_uniform
+		if bpy.context.scene.vf_quantize_settings.vert_dimensions == 'True':
+			quantX = quantY = quantZ = bpy.context.scene.vf_quantize_settings.vert_uniform
 		else:
-			quantX = bpy.context.scene.vf_vertex_quantize_settings.quant_xyz[0] # X quantisation
-			quantY = bpy.context.scene.vf_vertex_quantize_settings.quant_xyz[1] # Y quantisation
-			quantZ = bpy.context.scene.vf_vertex_quantize_settings.quant_xyz[2] # Z quantisation
+			quantX = bpy.context.scene.vf_quantize_settings.vert_xyz[0] # X quantization
+			quantY = bpy.context.scene.vf_quantize_settings.vert_xyz[1] # Y quantization
+			quantZ = bpy.context.scene.vf_quantize_settings.vert_xyz[2] # Z quantization
 		# source = bpy.context.view_layer.objects.active.data.vertices
-
+		
 		# Begin code modified from Scriblab and Photox source on BlenderArtist https://blenderartists.org/t/move-selected-vertices-with-python-script/1303114
 		mode = bpy.context.active_object.mode
 		bpy.ops.object.mode_set(mode='OBJECT')
 		selectedVerts = [v for v in bpy.context.active_object.data.vertices if v.select]
-
+		
 		# Process vertices
 		for vert in selectedVerts:
 			new_location = vert.co
@@ -58,7 +55,7 @@ class vf_vertex_quantize(bpy.types.Operator):
 			if quantZ > 0.0:
 				new_location[2] = round(new_location[2] / quantZ) * quantZ
 			vert.co = new_location
-
+		
 		# Reset object mode to original
 		bpy.ops.object.mode_set(mode=mode)
 
@@ -68,35 +65,36 @@ class vf_vertex_quantize(bpy.types.Operator):
 ###########################################################################
 # Project settings and UI rendering classes
 
-class vfVertexQuantizeSettings(bpy.types.PropertyGroup):
-	uniform_dimensions: bpy.props.BoolProperty(
-		name="Uniform Dimensions",
-		description="Enable/disable uniform quantisation across XYZ axis",
-		default=True)
-	quant_uniform: bpy.props.FloatProperty(
-		name="Uniform Quantisation Value",
+class vfQuantizeSettings(bpy.types.PropertyGroup):
+	vert_dimensions: bpy.props.EnumProperty(
+		name='Vertex Quantization',
+		description='Planar projection coordinate space',
+		items=[
+			('True', 'Uniform', 'Use uniform XYZ dimension snapping'),
+			('False', 'Separate', 'Use non-uniform snapping with separate XYZ values')
+			],
+		default='True')
+	vert_uniform: bpy.props.FloatProperty(
+		name="Uniform Quantization Value",
 		description="Uniform snapping across XYZ axis",
 		subtype="DISTANCE",
-		# unit="LENGTH", # May not be needed
 		default=0.025,
 		step=1.25,
 		precision=3,
-		soft_min=0.0,
-		soft_max=1.0,
 		min=0.0,
-		max=10.0,)
-	quant_xyz: bpy.props.FloatVectorProperty(
-		name="XYZ Quantisation Values",
-		description="Non-uniform snapping across XYZ axis",
+		soft_min=0.0,
+		soft_max=1.0)
+	vert_xyz: bpy.props.FloatVectorProperty(
+		name="XYZ Quantization",
+		description="XYZ snapping distances",
 		subtype="TRANSLATION",
-		# unit="LENGTH", # May not be needed
+		size=3,
 		default=[0.025, 0.025, 0.025],
 		step=1.25,
 		precision=3,
+		min=0,
 		soft_min=0.0,
-		soft_max=1.0,
-		min=0.0,
-		max=10.0,)
+		soft_max=1.0)
 
 class VFTOOLS_PT_vertex_quantize(bpy.types.Panel):
 	bl_space_type = "VIEW_3D"
@@ -106,29 +104,30 @@ class VFTOOLS_PT_vertex_quantize(bpy.types.Panel):
 	bl_options = {'DEFAULT_CLOSED'}
 	bl_label = "Vertex Quantize"
 	bl_idname = "VFTOOLS_PT_vertex_quantize"
-
+	
 	@classmethod
 	def poll(cls, context):
 		return True
-
+	
 	def draw_header(self, context):
 		try:
 			layout = self.layout
 		except Exception as exc:
 			print(str(exc) + " | Error in VF Vertex Quantize panel header")
-
+	
 	def draw(self, context):
 		try:
 			layout = self.layout
 			layout.use_property_decorate = False # No animation
-
-			layout.prop(context.scene.vf_vertex_quantize_settings, 'uniform_dimensions')
-			if bpy.context.scene.vf_vertex_quantize_settings.uniform_dimensions:
-				layout.prop(context.scene.vf_vertex_quantize_settings, 'quant_uniform', text='')
+			
+			col = layout.column(align=True)
+			row = col.row(align=True)
+			row.prop(context.scene.vf_quantize_settings, 'vert_dimensions', expand=True)
+			if bpy.context.scene.vf_quantize_settings.vert_dimensions == 'True':
+				col.prop(context.scene.vf_quantize_settings, 'vert_uniform', text='')
 			else:
-				# layout.prop(context.scene.vf_vertex_quantize_settings, 'quant_xyz', text='') # Compact single-line version
-				col=layout.column()
-				col.prop(context.scene.vf_vertex_quantize_settings, 'quant_xyz', text='')
+				row = col.row(align=True)
+				row.prop(context.scene.vf_quantize_settings, 'vert_xyz', text='')
 
 			# if bpy.context.view_layer.objects.active.data.vertices:
 			if bpy.context.view_layer.objects.active and bpy.context.view_layer.objects.active.type == "MESH":
@@ -148,7 +147,7 @@ addon_keymaps = []
 def register():
 	for cls in classes:
 		bpy.utils.register_class(cls)
-	bpy.types.Scene.vf_vertex_quantize_settings = bpy.props.PointerProperty(type=vfVertexQuantizeSettings)
+	bpy.types.Scene.vf_quantize_settings = bpy.props.PointerProperty(type=vfQuantizeSettings)
 
 	# Add the hotkey
 	wm = bpy.context.window_manager
@@ -161,7 +160,7 @@ def register():
 def unregister():
 	for cls in reversed(classes):
 		bpy.utils.unregister_class(cls)
-	del bpy.types.Scene.vf_vertex_quantize_settings
+	del bpy.types.Scene.vf_quantize_settings
 
 	# Remove the hotkey
 	for km, kmi in addon_keymaps:
