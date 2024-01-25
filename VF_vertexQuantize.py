@@ -3,16 +3,11 @@ bl_info = {
 	"author": "John Einselen - Vectorform LLC",
 	"blender": (2, 83, 0),
 	"location": "Scene > VF Tools > Vertex Quantize",
-	"version": (0, 3, 0),
+	"version": (0, 3, 2),
 	"description": "Customisable vertex snapping for increments that don't match the default grid scale",
-	"warning": "inexperienced developer, use at your own risk",
 	"doc_url": "https://github.com/jeinselenVF/VF-BlenderVertexQuantize",
 	"tracker_url": "https://github.com/jeinselenVF/VF-BlenderVertexQuantize/issues",
 	"category": "3D View"}
-
-# Based in part on basic code found here:
-# https://blenderartists.org/t/move-selected-vertices-with-python-script/1303114
-# https://blender.stackexchange.com/questions/196483/create-keyboard-shortcut-for-an-operator-using-python
 
 import bpy
 
@@ -26,24 +21,26 @@ class vf_vertex_quantize(bpy.types.Operator):
 	bl_options = {'REGISTER', 'UNDO'}
 	
 	def execute(self, context):
-		# self.report({'INFO'}, f"This is {self.bl_idname}")
-		if not bpy.context.view_layer.objects.active.data.vertices:
-			print("Error in VF Vertex Quantize operation (data not available?)")
-			return {'CANCELLED'}
+		if not context.active_object.data.vertices:
+			print("Error in VF Vertex Quantize operation (vertex data not available)")
+			return {'FINISHED'}
 		
 		# Set up local variables
-		if bpy.context.scene.vf_quantize_settings.vert_dimensions == 'True':
-			quantX = quantY = quantZ = bpy.context.scene.vf_quantize_settings.vert_uniform
+		if context.scene.vf_quantize_settings.vert_dimensions == 'True':
+			quantX = quantY = quantZ = context.scene.vf_quantize_settings.vert_uniform
 		else:
-			quantX = bpy.context.scene.vf_quantize_settings.vert_xyz[0] # X quantization
-			quantY = bpy.context.scene.vf_quantize_settings.vert_xyz[1] # Y quantization
-			quantZ = bpy.context.scene.vf_quantize_settings.vert_xyz[2] # Z quantization
-		# source = bpy.context.view_layer.objects.active.data.vertices
+			quantX = context.scene.vf_quantize_settings.vert_xyz[0] # X quantization
+			quantY = context.scene.vf_quantize_settings.vert_xyz[1] # Y quantization
+			quantZ = context.scene.vf_quantize_settings.vert_xyz[2] # Z quantization
 		
-		# Begin code modified from Scriblab and Photox source on BlenderArtist https://blenderartists.org/t/move-selected-vertices-with-python-script/1303114
-		mode = bpy.context.active_object.mode
+		# Get current mode and save it
+		mode = context.active_object.mode
+		
+		# Switch to object mode
 		bpy.ops.object.mode_set(mode='OBJECT')
-		selectedVerts = [v for v in bpy.context.active_object.data.vertices if v.select]
+		
+		# Get selected vertices
+		selectedVerts = [v for v in context.active_object.data.vertices if v.select]
 		
 		# Process vertices
 		for vert in selectedVerts:
@@ -56,7 +53,7 @@ class vf_vertex_quantize(bpy.types.Operator):
 				new_location[2] = round(new_location[2] / quantZ) * quantZ
 			vert.co = new_location
 		
-		# Reset object mode to original
+		# Reset mode to original
 		bpy.ops.object.mode_set(mode=mode)
 
 		# Done
@@ -107,7 +104,9 @@ class VFTOOLS_PT_vertex_quantize(bpy.types.Panel):
 	
 	@classmethod
 	def poll(cls, context):
-		return True
+		if context.area.ui_type == 'VIEW_3D' and context.active_object and context.active_object.type == 'MESH':
+			return True
+		return False
 	
 	def draw_header(self, context):
 		try:
@@ -120,23 +119,21 @@ class VFTOOLS_PT_vertex_quantize(bpy.types.Panel):
 			layout = self.layout
 			layout.use_property_decorate = False # No animation
 			
+			# Display settings
 			col = layout.column(align=True)
 			row = col.row(align=True)
 			row.prop(context.scene.vf_quantize_settings, 'vert_dimensions', expand=True)
-			if bpy.context.scene.vf_quantize_settings.vert_dimensions == 'True':
+			if context.scene.vf_quantize_settings.vert_dimensions == 'True':
 				col.prop(context.scene.vf_quantize_settings, 'vert_uniform', text='')
 			else:
 				row = col.row(align=True)
 				row.prop(context.scene.vf_quantize_settings, 'vert_xyz', text='')
-
-			# if bpy.context.view_layer.objects.active.data.vertices:
-			if bpy.context.view_layer.objects.active and bpy.context.view_layer.objects.active.type == "MESH":
-				layout.operator(vf_vertex_quantize.bl_idname)
-			else:
-				box = layout.box()
-				box.label(text="Active object must be a mesh with selected vertices")
+			
+			# Display button
+			layout.operator(vf_vertex_quantize.bl_idname)
 		except Exception as exc:
 			print(str(exc) + " | Error in VF Vertex Quantize panel")
+
 
 classes = (vf_vertex_quantize, vfVertexQuantizeSettings, VFTOOLS_PT_vertex_quantize)
 addon_keymaps = []
