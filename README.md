@@ -1,5 +1,7 @@
 # VF Vertex Quantize
 
+This add-on was designed for Blender version 2.8-4.1 (though not all previous versions may be fully supported). For Blender 4.2 and onwards, [please see the new Mesh Kit extension](https://github.com/jeinselen/Blender-MeshKit).
+
 Snaps vertices to custom per-axis increments, for when Blender's grid snap isn't granular enough. Quantization can be applied outside of edit mode so long as vertices within the active object are selected.
 
 ![screenshot of the Blender 3D view interface with the add-on installed, showing the uniform dimensions option enabled](images/uniform.png)
